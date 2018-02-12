@@ -106,8 +106,9 @@ Function Upgrade-SharpPrinterDriverToUPD
         #Upgrades Existing Sharp Drivers
         $installedPrinters = Get-WmiObject Win32_Printer
 
-        Write-Log "Waiting for driver to load into store"
-        while($true) {
+
+        for ($i = 1; $i -le 10; $i++) {
+            Write-Log "Waiting for driver to load into store. Waiting for: $($i * 5) seconds"
             if (gwmi win32_printerdriver | where {$_.Name -match $DRIVER}) {break}
             Start-Sleep -Seconds 5
         }
