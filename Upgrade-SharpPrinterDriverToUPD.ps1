@@ -8,24 +8,16 @@
 .NOTES 
     Name       : Upgrade-SharpPrinterDriverToUPD
     Author     : Tom Dobson & Radoslav Radoev
-    Version    : 1.1
+    Version    : 1.0
     DateCreated: 02-09-2018
     DateUpdated: 02-15-2018
-        Changes: Existing Driver Install Detection
+        Changes: Better existing driver install detection
+                 Logging verbosity
+                 Variable scoping changes
 
 .LINK 
 #>
 
-# Variables and Constants
-if (-Not ($DRIVER)) 
-{
-    New-Variable -Name "DRIVER" -Value "SHARP UD2 PCL6" -Option Constant
-}
-
-if (-Not ($DRIVERNAME)) 
-{
-    New-Variable -Name "DRIVERNAME" -Value "SHARP UD2 PCL6,3,Windows x64" -Option Constant
-}
 
 #region Defining Functions...
 
@@ -59,6 +51,17 @@ Function Write-Log
 
 Function Upgrade-SharpPrinterDriverToUPD 
 {
+
+    # Variables and Constants
+        if (-Not ($DRIVER)) 
+    {
+        New-Variable -Name "DRIVER" -Value "SHARP UD2 PCL6" -Option Constant
+    }
+
+    if (-Not ($DRIVERNAME)) 
+    {
+        New-Variable -Name "DRIVERNAME" -Value "SHARP UD2 PCL6,3,Windows x64" -Option Constant
+    }
   
     #Validates the script is being run as admin
     Function Check-AdminRights {
@@ -73,8 +76,9 @@ Function Upgrade-SharpPrinterDriverToUPD
              
         #Checks for Sharp UPD In Driver Store.
         $UPD = "$ENV:windir\System32\DriverStore\FileRepository\sfwemenu.inf_amd64_9a84be23a5070548\sfwemenu.inf"
+        $WIN7UPD = "$ENV:windir\System32\DriverStore\FileRepository\sfwemenu.inf_amd64_neutral_9a84be23a5070548\sfwemenu.inf"
              
-        If (Test-Path $UPD) 
+        If ((Test-Path $UPD) -or (Test-Path $WIN7UPD)) 
         {
             Write-Log "$DRIVER is already detected in the Driver Store."
             return $True
@@ -94,6 +98,7 @@ Function Upgrade-SharpPrinterDriverToUPD
         certutil -addstore "TrustedPublisher" $certPath | Out-Null
         rundll32 printui.dll PrintUIEntry /ia /m $DRIVER /h "x64" /v "Type 3 - User Mode" /f $infPath
         certutil -delstore "TrustedPublisher" $certPath | Out-Null
+        Write-Log "Installing $Driver"
     
     }
 
@@ -108,9 +113,8 @@ Function Upgrade-SharpPrinterDriverToUPD
             Write-Log "$DRIVER is being added to Driver Store and Installed."
             Install-Driver
 
-        } elseif (-not ($installedPrinterDrivers.name -contains $DRIVERNAME)) {
+        } elseif ($installedPrinterDrivers.name -notcontains $DRIVERNAME) {
 
-            Write-Log "$DRIVER is being installed"
             Install-Driver
 
         } else {
