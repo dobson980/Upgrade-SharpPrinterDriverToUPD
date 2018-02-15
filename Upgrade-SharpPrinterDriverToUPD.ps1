@@ -8,7 +8,7 @@
 .NOTES 
     Name       : Upgrade-SharpPrinterDriverToUPD
     Author     : Tom Dobson & Radoslav Radoev
-    Version    : 1.0
+    Version    : 1.1
     DateCreated: 02-09-2018
     DateUpdated: 02-15-2018
         Changes: Better existing driver install detection
