@@ -1,19 +1,17 @@
 <#
 .SYNOPSIS 
     SBS Printer Driver Upgrade to Universal Print Driver
-
 .DESCRIPTION 
     Installs SHARP UD2 PCL6 UPD to Driver Store.Installs SHARP UD2 PCL6 UPD. Upgrades existing Sharp Printers to UPD.
-
 .EXAMPLE 
     Upgrade-SharpPrinterDriverToUPD
-
 .NOTES 
     Name       : Upgrade-SharpPrinterDriverToUPD
     Author     : Tom Dobson & Radoslav Radoev
-    Version    : 1.0
+    Version    : 1.1
     DateCreated: 02-09-2018
-    DateUpdated: 02/12-2018
+    DateUpdated: 02-15-2018
+        Changes: Existing Driver Install Detection
 
 .LINK 
 #>
@@ -22,6 +20,11 @@
 if (-Not ($DRIVER)) 
 {
     New-Variable -Name "DRIVER" -Value "SHARP UD2 PCL6" -Option Constant
+}
+
+if (-Not ($DRIVERNAME)) 
+{
+    New-Variable -Name "DRIVERNAME" -Value "SHARP UD2 PCL6,3,Windows x64" -Option Constant
 }
 
 #region Defining Functions...
@@ -83,19 +86,36 @@ Function Upgrade-SharpPrinterDriverToUPD
         }
     }
 
-    Function Add-UPDtoDriverStore {
+    Function Install-Driver {
 
-        #Adds Sharp UPD to Driver Store if its not already there.
         $infPath = "\\shcsd\sharp\drivers\Printers\Sharp Electronics\Sharp Universal Print Driver\EnglishA\PCL6\64bit\sfweMENU.inf"
         $certPath = "\\shcsd\sharp\drivers\Printers\Sharp Electronics\Sharp Universal Print Driver\SharpPrinterInstall.cer"
 
+        certutil -addstore "TrustedPublisher" $certPath | Out-Null
+        rundll32 printui.dll PrintUIEntry /ia /m $DRIVER /h "x64" /v "Type 3 - User Mode" /f $infPath
+        certutil -delstore "TrustedPublisher" $certPath | Out-Null
+    
+    }
+
+
+    Function Add-UPDtoDriverStore {
+
+        #Adds Sharp UPD to Driver Store if its not already there.
+        $installedPrinterDrivers = gwmi Win32_PrinterDriver
+
         if (-Not (Check-ForSharpUPD)) {
        
-            Write-Log "Adding $DRIVER to Driver Store."
-            certutil -addstore "TrustedPublisher" $certPath | Out-Null
-            rundll32 printui.dll PrintUIEntry /ia /m $DRIVER /h "x64" /v "Type 3 - User Mode" /f $infPath
-            certutil -delstore "TrustedPublisher" $certPath | Out-Null
-            Write-Log "$DRIVER has been Added to Driver Store"
+            Write-Log "$DRIVER is being added to Driver Store and Installed."
+            Install-Driver
+
+        } elseif (-not ($installedPrinterDrivers.name -contains $DRIVERNAME)) {
+
+            Write-Log "$DRIVER is being installed"
+            Install-Driver
+
+        } else {
+
+            Write-Log "$DRIVER is in DriverStore and is already Installed."
 
         }
         #manual driver removal : printui /s /t2
