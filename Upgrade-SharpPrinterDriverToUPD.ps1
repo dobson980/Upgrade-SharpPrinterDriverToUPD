@@ -8,7 +8,7 @@
 .NOTES 
     Name       : Upgrade-SharpPrinterDriverToUPD
     Author     : Tom Dobson & Radoslav Radoev
-    Version    : 1.1
+    Version    : 1.2
     DateCreated: 02-09-2018
     DateUpdated: 02-23-2018
         Changes: Reg Stamp for Deployment Validation
