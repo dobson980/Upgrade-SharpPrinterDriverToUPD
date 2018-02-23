@@ -10,8 +10,9 @@
     Author     : Tom Dobson & Radoslav Radoev
     Version    : 1.1
     DateCreated: 02-09-2018
-    DateUpdated: 02-15-2018
-        Changes: Better existing driver install detection
+    DateUpdated: 02-23-2018
+        Changes: Reg Stamp for Deployment Validation
+                 Better existing driver install detection
                  Logging verbosity
                  Variable scoping changes
 
@@ -143,7 +144,33 @@ Function Upgrade-SharpPrinterDriverToUPD
             Write-Log "Upgrading $name to $DRIVER"
             & rundll32 printui.dll PrintUIEntry /Xs /n $name DriverName $DRIVER
         }
-}
+    }
+
+        Function Validate-Upgrade {
+
+        Sleep -Seconds 120
+        #Upgrades Existing Sharp Drivers
+        $installedPrinters = Get-WmiObject Win32_Printer
+        $regPath = "HKLM:\SOFTWARE\SHARP\LANDESK\CustomVulnerabilityStamps\SharpUPD"
+
+        try {New-Item -Path $regPath -ErrorAction Stop}
+        catch {Write-Log "RegPath Failed to Create."}
+        New-ItemProperty -Path $regPath -Name "SharpUPDUpgradeFailed" -Value 0 -PropertyType DWORD -Force  
+
+        Write-Log "Validatating All Sharp Printers are Upgraded."
+        foreach($printer in ($installedPrinters|Where{$_.DriverName -like 'SHARP MX*'})){
+            $driverName = $printer.DriverName
+            $printerName = $printer.Name
+            if ($driverName -like 'Sharp MX*') {
+                Write-Log "$printerName failed to upgrade; still has $driverName set as the default driver."
+                Set-ItemProperty -Path $regPath -Name "SharpUPDUpgradeFailed" -Value 1 
+            } else {
+                Write-Log "All Printers Drivers Upgraded to $driverName Successfully."
+            }
+        }
+    }
+
+
 
 #endregion
 
@@ -151,6 +178,7 @@ Function Upgrade-SharpPrinterDriverToUPD
     if (Check-AdminRights) {
         Add-UPDtoDriverStore
         Upgrade-ToUPD
+        Validate-Upgrade
     } else {
         $Message = "This script requires Admin Rights, please rerun as admin"
         Write-Log $Message -Level ERROR
